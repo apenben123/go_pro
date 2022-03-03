@@ -173,7 +173,7 @@ $ go env -w GOPROXY=https://goproxy.cn,direct
    >
    >**=** 是赋值运算符，不是起别名
 
-3.  server 和 client 之间需要保证 Protocol 与 Transport 是相同匹配的 
+3. server 和 client 之间需要保证 Protocol 与 Transport 是相同匹配的 
 
    > 协议 Protocol
    >
@@ -194,5 +194,141 @@ $ go env -w GOPROXY=https://goproxy.cn,direct
 
    homed c++ 服务均为 ***TBinaryProtocol + TFramedTransport + TNonblockingServer***
 
-4.  
 
+
+### 5. go调用c++
+
+[cgo类型转换 ](https://blog.csdn.net/weixin_36771703/article/details/89003014)
+
+[cgo类型](https://blog.csdn.net/darlingtangli/article/details/84198859)
+
+[cgo内存泄漏](https://ask.csdn.net/questions/1020754)
+
+[go调用c++](https://www.codercto.com/a/39274.html)
+
+**go 不支持直接调用c++，需要用c做转接。**
+
+目录结构
+
+```shell
+[root@master(106.210) /homed/iusm/zhouyu/go/test/src/playtoken]# tree
+.
+├── cpp
+│   ├── stdafx.h			//cpp依赖头文件
+│   ├── XtMacros.h			//cpp依赖头文件
+│   ├── ext_sec_io.cpp		//cpp文件 基本算法
+│   ├── ext_sec_io.h		//cpp文件
+│   ├── com_base62.cpp		//cpp文件 基本算法
+│   ├── com_base62.h		//cpp文件 
+│   ├── com_crc.cpp			//cpp文件 基本算法
+│   ├── com_crc.h			//cpp文件
+│   ├── com_play_token.cpp	//cpp文件 生成playtoken
+│   ├── com_play_token.h	//cpp文件
+│   ├── Makefile			//编译生成so
+│   ├── play_token.cpp		//c转接文件
+│   └── play_token.h		//c转接文件
+├── lib
+│   └── libplaytoken.so		//so库文件
+├── playtoken.go			//go
+└── playtoken_test.go
+```
+
+ play_token.h:
+
+```c
+#ifndef __PLAY_TOKEN_H__
+#define __PLAY_TOKEN_H__
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+    
+#include <stdint.h>
+    
+char* get_video_play_token_ver1(const char* ip_addr, const char* fileName, uint16_t nTrailTime, int32_t nPlatform);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* __PLAY_TOKEN_H__ */
+```
+
+ play_token.cpp:
+
+```c
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "com_play_token.h"
+#include "play_token.h"    //少了这行会报下面2类型的错误
+
+char*  get_video_play_token_ver1(const char* ip_addr, const char* fileName, uint16_t nTrailTime, int32_t nPlatform, int32_t debug=0)
+{
+        int32_t ret = -1;
+        SPlayTokenInfo tokenInfo;
+        char* playToken = NULL;
+
+        tokenInfo.nIsOwn                = 1; //! 不鉴权
+        tokenInfo.nPlayType     = 3; //! EContentLabel::VOD
+        tokenInfo.nStartTime    = 0; //! starttime 固定填 0
+        tokenInfo.strIP                 = ip_addr;
+        tokenInfo.strFileName   = fileName;
+        tokenInfo.nTrailTime    = nTrailTime;
+        if (nPlatform!=(PLATFORM_ID)-1)
+        {
+                tokenInfo.setPlatform.insert(nPlatform);
+        }
+
+        string strPlayToken;
+        ret = getPlayTokenVer1(tokenInfo, strPlayToken);
+        if (!strPlayToken.empty())
+        {
+                playToken = (char*)malloc(strPlayToken.size() + 1);
+                memcpy(playToken, strPlayToken.c_str(), strPlayToken.size());
+                playToken[strPlayToken.size() + 1] = 0;
+        }
+
+    if (debug == 1)
+    {
+        printf("strPlayToken=%s\n", strPlayToken.c_str());
+        printf("playToken=%s\n", playToken);
+    }
+
+        return NULL;
+}
+```
+
+其他文件就按照c++语法写就行了。转接文件只能是c语法。
+
+且要 extern "C" {} 才能被 cgo 调用。
+
+因为cgo支持的
+
+1. 找不到so库文件
+
+   ```shell
+   [root@master(106.210) /homed/iusm/zhouyu/go/test/src]# go run   test.go
+   /tmp/go-build462151488/b001/exe/test: error while loading shared libraries: libplaytoken.so: cannot open shared object file: No such file or directory
+   exit status 127
+   ```
+
+   在 go build 的时候指定so的路径： go build -ldflags="-r ./" test.go
+
+   ```shell
+   [root@master(106.210) /homed/iusm/zhouyu/go/test/src]# go run -ldflags="-r ./playtoken/cpp" test.go
+   ```
+
+   [go调用so库](https://blog.csdn.net/weixin_38374974/article/details/99842556)
+
+2. 对‘get_video_play_token_ver1’未定义的引用
+
+   ```shell
+   /tmp/go-build201443194/b001/_x002.o：在函数‘_cgo_13df3c7e1799_Cfunc_get_video_play_token_ver1’中：
+   /tmp/go-build/cgo-gcc-prolog:58：对‘get_video_play_token_ver1’未定义的引用
+   ```
+
+   检查 play_token.cpp 文件中是否有 #include "play_token.h" 头文件
