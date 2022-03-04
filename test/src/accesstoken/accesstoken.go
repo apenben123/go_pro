@@ -78,37 +78,42 @@ const (
 )
 
 type HomeRegion struct {
-	nProvinceId  int64 //(1级)省级区域码
-	nCityId      int64 //(2级)市级区域码
-	nAreaId      int64 //(3级)区县级区域码
-	nTownId      int64 //(4级)乡镇级区域码
-	nVillageId   int64 //(5级)村级区域码  行政区域码中目前这一级是最小的
-	nCommunityId int64 //(6级)扩展小区编码
-	nBuildingId  int64 //(7级)扩展楼栋编码
-	nRegionId    int64 //可获取的最小级区域码
-	nLevel       int64 //nRegionId的层级(1-7级)
+	ProvinceId  int64 //(1级)省级区域码
+	CityId      int64 //(2级)市级区域码
+	AreaId      int64 //(3级)区县级区域码
+	TownId      int64 //(4级)乡镇级区域码
+	VillageId   int64 //(5级)村级区域码  行政区域码中目前这一级是最小的
+	CommunityId int64 //(6级)扩展小区编码
+	BuildingId  int64 //(7级)扩展楼栋编码
+	RegionId    int64 //可获取的最小级区域码
+	Level       int64 //nRegionId的层级(1-7级)
 }
 
 type TOKEN_INFO struct {
-	nDA          int64 // 用户DA
-	nDeviceId    int64 // 访问设备ID
-	nDeviceType  int16 // 访问设备类型
-	nBusiPlat    int32 // 支付平台
-	nUserGroup   int64 // 用户频道分组
-	nLoginTime   int64 // 登录时间
-	nLoginIp     int32 // token产生时的登录IP
-	nAppEntry    int32 // 应用入口
-	nOS          int32 // 操作系统类型 1:linux  2:android, 默认1
-	nRole        int16 // 用户对应的角色, 0:普通终端用户, 1: 游客, 2: 后台用户
-	nDefinition  int16 //分辨率， 取值0：标清 ； 1：高清； 2：超清； 3：4k。 默认值为2。
-	nFramerate   int32 //帧率 ， 取值如: 30（表示30及以下), 60。 默认值为30。
-	nEquipmentID int64 //设备型号ID
-	nHomeType    int32
-	region       HomeRegion
-	nExtend1     int32
-	nExtend2     int32
-	nExtend3     int32
-	bHasAbility  bool
+	DA          int64  // 用户DA
+	DeviceId    int64  // 访问设备ID
+	DeviceType  int16  // 访问设备类型
+	BusiPlat    int32  // 支付平台
+	UserGroup   int64  // 用户频道分组
+	LoginTime   int64  // 登录时间
+	LoginIp     uint32 // token产生时的登录IP
+	AppEntry    int32  // 应用入口
+	OS          int32  // 操作系统类型 1:linux  2:android, 默认1
+	Role        int16  // 用户对应的角色, 0:普通终端用户, 1: 游客, 2: 后台用户
+	Definition  int16  //分辨率， 取值0：标清 ； 1：高清； 2：超清； 3：4k。 默认值为2。
+	Framerate   int32  //帧率 ， 取值如: 30（表示30及以下), 60。 默认值为30。
+	EquipmentID int64  //设备型号ID
+	HomeType    int32
+	Region      HomeRegion
+	Extend1     int32
+	Extend2     int32
+	Extend3     int32
+	HasAbility  bool
+}
+
+func InetNtoA(ip int64) string {
+	return fmt.Sprintf("%d.%d.%d.%d",
+		byte(ip), byte(ip>>8), byte(ip>>16), byte(ip>>24))
 }
 
 func GetAccountTokenInfo(accessToken string) (int, TOKEN_INFO) {
@@ -163,10 +168,10 @@ func decodeTestToken(accessToken string) (int, TOKEN_INFO) {
 
 	ret, strValue = getTestTokenInfo(accessToken, "TOKEN")
 	if len(strValue) != 0 {
-		stToken.nDA, _ = strconv.ParseInt(strValue, 10, 64)
+		stToken.DA, _ = strconv.ParseInt(strValue, 10, 64)
 		//检查测试token使用是否开启，检查da是否是内置的账号
 		if 0 == checkTestTokenSwitch() {
-			getTestDeviceTypeId(accessToken, &stToken.nDeviceId, &stToken.nDeviceType)
+			getTestDeviceTypeId(accessToken, &stToken.DeviceId, &stToken.DeviceType)
 			getTestLoginParam(accessToken, &stToken)
 		}
 	}
@@ -174,67 +179,67 @@ func decodeTestToken(accessToken string) (int, TOKEN_INFO) {
 	return ret, stToken
 }
 
-func getTestDeviceTypeId(accessToken string, nDeviceId *int64, nDeviceType *int16) int {
+func getTestDeviceTypeId(accessToken string, DeviceId *int64, DeviceType *int16) int {
 
 	ret, strValue := getTestTokenInfo(accessToken, "STBID")
 	if ret == 0 {
-		*nDeviceType = IUSM_DEVICE_TYPE_STB
+		*DeviceType = IUSM_DEVICE_TYPE_STB
 		if len(strValue) != 0 {
-			*nDeviceId, _ = strconv.ParseInt(strValue, 10, 64)
+			*DeviceId, _ = strconv.ParseInt(strValue, 10, 64)
 		} else {
-			*nDeviceId = DEVICE_ID_STB_END
+			*DeviceId = DEVICE_ID_STB_END
 		}
 	}
 
 	ret, strValue = getTestTokenInfo(accessToken, "CAID")
 	if ret == 0 {
-		*nDeviceType = IUSM_DEVICE_TYPE_SMARTCARD
+		*DeviceType = IUSM_DEVICE_TYPE_SMARTCARD
 		if len(strValue) != 0 {
-			*nDeviceId, _ = strconv.ParseInt(strValue, 10, 64)
+			*DeviceId, _ = strconv.ParseInt(strValue, 10, 64)
 		} else {
-			*nDeviceId = DEVICE_ID_SMARTCARD_END
+			*DeviceId = DEVICE_ID_SMARTCARD_END
 		}
 	}
 
 	ret, strValue = getTestTokenInfo(accessToken, "MOBILEID")
 	if ret == 0 {
-		*nDeviceType = IUSM_DEVICE_TYPE_MOBILE
+		*DeviceType = IUSM_DEVICE_TYPE_MOBILE
 		if len(strValue) != 0 {
-			*nDeviceId, _ = strconv.ParseInt(strValue, 10, 64)
+			*DeviceId, _ = strconv.ParseInt(strValue, 10, 64)
 		} else {
-			*nDeviceId = DEVICE_ID_MOBILE_END
+			*DeviceId = DEVICE_ID_MOBILE_END
 		}
 	}
 
 	ret, strValue = getTestTokenInfo(accessToken, "PADID")
 	if ret == 0 {
-		*nDeviceType = IUSM_DEVICE_TYPE_PAD
+		*DeviceType = IUSM_DEVICE_TYPE_PAD
 		if len(strValue) != 0 {
-			*nDeviceId, _ = strconv.ParseInt(strValue, 10, 64)
+			*DeviceId, _ = strconv.ParseInt(strValue, 10, 64)
 		} else {
-			*nDeviceId = DEVICE_ID_PAD_END
+			*DeviceId = DEVICE_ID_PAD_END
 		}
 	}
 
 	ret, strValue = getTestTokenInfo(accessToken, "PCID")
 	if ret == 0 {
-		*nDeviceType = IUSM_DEVICE_TYPE_PC
+		*DeviceType = IUSM_DEVICE_TYPE_PC
 		if len(strValue) != 0 {
-			*nDeviceId, _ = strconv.ParseInt(strValue, 10, 64)
+			*DeviceId, _ = strconv.ParseInt(strValue, 10, 64)
 		} else {
-			*nDeviceId = DEVICE_ID_PC_END
+			*DeviceId = DEVICE_ID_PC_END
 		}
 	}
 
 	ret, strValue = getTestTokenInfo(accessToken, "DID")
 	if ret == 0 {
-		//*nDeviceType = IUSM_DEVICE_TYPE_PC
+		//*DeviceType = IUSM_DEVICE_TYPE_PC
 		if len(strValue) != 0 {
-			*nDeviceId, _ = strconv.ParseInt(strValue, 10, 64)
+			*DeviceId, _ = strconv.ParseInt(strValue, 10, 64)
 		}
 	} else {
-		*nDeviceType = IUSM_DEVICE_TYPE_STB
-		*nDeviceId = DEVICE_ID_STB_END
+		*DeviceType = IUSM_DEVICE_TYPE_STB
+		*DeviceId = DEVICE_ID_STB_END
 	}
 	return 0
 }
@@ -259,7 +264,7 @@ func getTestLoginParam(accessToken string, stToken *TOKEN_INFO) {
 	if ret == 0 {
 		if len(strValue) != 0 {
 			data, _ := strconv.Atoi(strValue)
-			stToken.nDefinition = int16(data)
+			stToken.Definition = int16(data)
 		}
 	}
 
@@ -267,32 +272,32 @@ func getTestLoginParam(accessToken string, stToken *TOKEN_INFO) {
 	if ret == 0 {
 		if len(strValue) != 0 {
 			data, _ := strconv.ParseInt(strValue, 10, 32)
-			stToken.nFramerate = int32(data)
+			stToken.Framerate = int32(data)
 		}
 	}
 
 	ret, strValue = getTestTokenInfo(accessToken, "GID")
 	if ret == 0 {
 		if len(strValue) != 0 {
-			stToken.nUserGroup, _ = strconv.ParseInt(strValue, 10, 64)
+			stToken.UserGroup, _ = strconv.ParseInt(strValue, 10, 64)
 		}
 	}
 
 	ret, strValue = getTestTokenInfo(accessToken, "ZONE")
 	if ret == 0 {
 		if len(strValue) != 0 {
-			stToken.region.nAreaId, _ = strconv.ParseInt(strValue, 10, 64)
+			stToken.Region.AreaId, _ = strconv.ParseInt(strValue, 10, 64)
 		}
 	}
 	ret, strValue = getTestTokenInfo(accessToken, "EXT")
 	if ret == 0 {
 		if len(strValue) != 0 {
 			data, _ := strconv.ParseInt(strValue[0:2], 10, 32)
-			stToken.nExtend1 = int32(data)
+			stToken.Extend1 = int32(data)
 			data, _ = strconv.ParseInt(strValue[2:4], 10, 32)
-			stToken.nExtend2 = int32(data)
+			stToken.Extend2 = int32(data)
 			data, _ = strconv.ParseInt(strValue[4:6], 10, 32)
-			stToken.nExtend3 = int32(data)
+			stToken.Extend3 = int32(data)
 		}
 	}
 }
@@ -332,24 +337,24 @@ func decodeAccessToken(accessToken string) (int, TOKEN_INFO) {
 		return RET_CODE_IUS_USER_TOKEN_ERROR, stToken
 	}
 
-	stToken.nLoginTime = strtoll(accessToken, pR+1, 16, 64)
-	dataU := strtoll(accessToken, pU+1, 16, 32)
+	stToken.LoginTime = int64(Strtoull(accessToken, pR+1, 16, 64))
+	dataU := Strtoull(accessToken, pU+1, 16, 32)
 	content_u := uint32(dataU)
-	stToken.nDeviceType = int16((content_u >> 28) & 0x0F)
-	stToken.nBusiPlat = int32((content_u >> 24) & 0x0F)
+	stToken.DeviceType = int16((content_u >> 28) & 0x0F)
+	stToken.BusiPlat = int32((content_u >> 24) & 0x0F)
 	system_version := (content_u >> 20) & 0x0F
 	ikey := (content_u >> 15) & 0x1F
-	stToken.nOS = int32((content_u >> 12) & 0x07)
-	stToken.nAppEntry = int32((content_u >> 8) & 0x0F)
-	stToken.nDeviceId = strtoll(accessToken, pK+1, 16, 64)
-	stToken.nDA = strtoll(accessToken, pM+1, 16, 64)
-	dataI := strtoll(accessToken, pI+1, 16, 32)
-	stToken.nLoginIp = int32(dataI)
-	dataW := strtoll(accessToken, pW+1, 16, 64)
+	stToken.OS = int32((content_u >> 12) & 0x07)
+	stToken.AppEntry = int32((content_u >> 8) & 0x0F)
+	stToken.DeviceId = int64(Strtoull(accessToken, pK+1, 16, 64))
+	stToken.DA = int64(Strtoull(accessToken, pM+1, 16, 64))
+	dataI := Strtoull(accessToken, pI+1, 16, 32)
+	stToken.LoginIp = uint32(dataI)
+	dataW := Strtoull(accessToken, pW+1, 16, 64)
 
 	if system_version >= HOMED_TOKEN_VERSION_09 {
 		/* 密钥,可以还原,防止伪造*/
-		tmp_random_key := fmt.Sprintf("%d%d%d", stToken.nDeviceId, stToken.nDA, dataW)
+		tmp_random_key := fmt.Sprintf("%d%d%d", stToken.DeviceId, stToken.DA, dataW)
 		hash_value := getStringHashVal(tmp_random_key) & 0xFF
 		//! 兼容上一个版本的秘钥
 		if (ikey != (hash_value & 0x1F)) && (ikey != ((hash_value >> 3) & 0x1F)) {
@@ -365,33 +370,33 @@ func decodeAccessToken(accessToken string) (int, TOKEN_INFO) {
 	pZ := strings.IndexByte(accessToken, 'Z') //Z(32b) +区域信息
 
 	if pP != -1 {
-		stToken.nUserGroup = strtoll(accessToken, pP+1, 16, 64)
+		stToken.UserGroup = int64(Strtoull(accessToken, pP+1, 16, 64))
 	}
 	if pQ != -1 {
-		stToken.nEquipmentID = strtoll(accessToken, pQ+1, 16, 64)
+		stToken.EquipmentID = int64(Strtoull(accessToken, pQ+1, 16, 64))
 	}
 	if pO != -1 {
-		dataO := strtoll(accessToken, pO+1, 16, 32)
+		dataO := Strtoull(accessToken, pO+1, 16, 32)
 		device_detail := uint32(dataO)
-		stToken.nDefinition = int16((device_detail >> 28) & 0x0F)
-		stToken.nExtend1 = int32((device_detail >> 24) & 0x0F)
-		stToken.nExtend2 = int32((device_detail >> 20) & 0x0F)
-		stToken.nExtend3 = int32((device_detail >> 16) & 0x0F)
-		stToken.nFramerate = int32(device_detail & 0xFF)
+		stToken.Definition = int16((device_detail >> 28) & 0x0F)
+		stToken.Extend1 = int32((device_detail >> 24) & 0x0F)
+		stToken.Extend2 = int32((device_detail >> 20) & 0x0F)
+		stToken.Extend3 = int32((device_detail >> 16) & 0x0F)
+		stToken.Framerate = int32(device_detail & 0xFF)
 	} else {
-		if stToken.nOS == 1 {
-			stToken.nDefinition = 2
+		if stToken.OS == 1 {
+			stToken.Definition = 2
 		} else {
-			stToken.nDefinition = 3
+			stToken.Definition = 3
 		}
-		stToken.nFramerate = 30
+		stToken.Framerate = 30
 	}
 	if pT != -1 {
-		dataT := strtoll(accessToken, pT+1, 16, 32)
-		stToken.nHomeType = int32(dataT)
+		dataT := Strtoull(accessToken, pT+1, 16, 32)
+		stToken.HomeType = int32(dataT)
 	}
 	if pZ != -1 {
-		stToken.region.nRegionId = strtoll(accessToken, pZ+1, 16, 64)
+		stToken.Region.RegionId = int64(Strtoull(accessToken, pZ+1, 16, 64))
 	}
 
 	return ret, stToken
@@ -409,8 +414,8 @@ func getStringHashVal(str string) uint32 {
 	return (uint32)(hash & 0xffffffff)
 }
 
-func strtoll(str string, startIdx int, base int, bitSize int) int64 {
-	var out int64 = 0
+func Strtoull(str string, startIdx int, base int, bitSize int) uint64 {
+	var out uint64 = 0
 	endIdx := startIdx
 	for _, ch := range str[startIdx:] {
 		if (ch >= '0' && ch <= '9') ||
@@ -423,7 +428,8 @@ func strtoll(str string, startIdx int, base int, bitSize int) int64 {
 	}
 
 	if endIdx > startIdx {
-		out, _ = strconv.ParseInt(str[startIdx:endIdx], base, bitSize)
+		strData := str[startIdx:endIdx]
+		out, _ = strconv.ParseUint(strData, base, bitSize)
 	}
 
 	return out
@@ -454,18 +460,18 @@ func decodeAdminToken(accessToken string) (int, TOKEN_INFO) {
 
 	pSecretKey := "Homed_Secret*Key2@17"
 
-	dataP := strtoll(accessToken, pP+1, 16, 32)
+	dataP := Strtoull(accessToken, pP+1, 16, 32)
 	system_id := uint32(dataP)
-	dataK := strtoll(accessToken, pK+1, 16, 32)
+	dataK := Strtoull(accessToken, pK+1, 16, 32)
 	hashKey := uint32(dataK)
-	utc := strtoll(accessToken, pT+1, 16, 64)
+	utc := Strtoull(accessToken, pT+1, 16, 64)
 	tmp_buffer := fmt.Sprintf("s=%x&m=%s&t=%x", system_id, pSecretKey, utc)
 	hashKey2 := getStringHashVal(tmp_buffer)
 	if hashKey2 != hashKey {
 		ret = RET_CODE_IUS_USER_TOKEN_ERROR
 	}
 	/* 校验通过,就是我们内部产生的KEY */
-	stToken.nDA = int64(SUPER_ADMIN_START_ID | (system_id & 0x00FFFFFF))
+	stToken.DA = int64(SUPER_ADMIN_START_ID | (system_id & 0x00FFFFFF))
 
 	return ret, stToken
 }
