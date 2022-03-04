@@ -1,0 +1,1 @@
+thrift -r -out ../  --gen go iuct_service.thrift
