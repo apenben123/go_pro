@@ -8,9 +8,8 @@
 #include "play_token.h"
 
 
-char*  get_video_play_token_ver1(const char* ip_addr, const char* fileName, uint16_t nTrailTime, int32_t nPlatform, int32_t debug=0)
+char*  get_video_play_token_ver1(const char* ip_addr, const char* fileName, uint16_t nTrailTime, int32_t nPlatform, int32_t debug)
 {
-	int32_t ret = -1;
 	SPlayTokenInfo tokenInfo;
 	char* playToken = NULL;
 
@@ -26,12 +25,13 @@ char*  get_video_play_token_ver1(const char* ip_addr, const char* fileName, uint
 	}
 
 	string strPlayToken;
-	ret = getPlayTokenVer1(tokenInfo, strPlayToken);
+	getPlayTokenVer1(tokenInfo, strPlayToken);
 	if (!strPlayToken.empty())
 	{
-		playToken = (char*)malloc(strPlayToken.size() + 1);
-		memcpy(playToken, strPlayToken.c_str(), strPlayToken.size());
-		playToken[strPlayToken.size() + 1] = 0;
+		playToken = (char*)malloc(sizeof(char) * (strPlayToken.size() + 1));
+		strcpy(playToken, strPlayToken.c_str());
+		//memcpy(playToken, strPlayToken.c_str(), strPlayToken.size());
+		//playToken[strPlayToken.size() + 1] = 0;
 	}
 
     if (debug == 1)
@@ -40,19 +40,26 @@ char*  get_video_play_token_ver1(const char* ip_addr, const char* fileName, uint
         printf("playToken=%s\n", playToken);
     }
 
-	return NULL;
+	return playToken;
 }
 
-/*int main()
+int main()
 {
-	char playToken[1024];
+	char *playToken = NULL;
 	char ip_addr[1024] = "192.168.49.210";
 	char fileName[1024] = "test";
 
-	get_video_play_token_ver1(playToken, ip_addr, fileName, 10, 1);
+	playToken = get_video_play_token_ver1(ip_addr, fileName, 10, 1);
+    if (playToken)
+    {
+        printf("playToken=%s", playToken);
+        free(playToken);
+    }
+    else
+    {
+        printf("playtoken is nill");
+    }
 
-	string str = playToken;
-	printf("str=%s", str.c_str());
 	return 0;
-}*/
+}
 

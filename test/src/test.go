@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"net/http"
+	_ "net/http/pprof"
 	"reflect"
 	"test/accesstoken"
 	"test/gothrift/iuct_service/iuct_client"
@@ -10,6 +12,12 @@ import (
 
 type UID = int64
 type USER_ID int64
+
+func init() {
+	go func() {
+		http.ListenAndServe(":38000", nil)
+	}()
+}
 
 func main() {
 	test_type()
@@ -57,5 +65,6 @@ func rpcTest() {
 }
 
 func playtokenTest() {
-	playtoken.CppTest()
+	playtoken.CppTest(true)
+	playtoken.BentchCppTest(1000000000)
 }

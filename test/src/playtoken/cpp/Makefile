@@ -5,4 +5,5 @@ playtoken.so:
 	mv ./libplaytoken.so ../lib
 	rm -f com_play_token.o play_token.o
 clean:
+	rm -f ../lib/libplaytoken.so
 	rm -f libplaytoken.so com_play_token.o play_token.o

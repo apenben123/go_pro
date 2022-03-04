@@ -7,7 +7,7 @@ extern "C" {
 #endif
 #include <stdint.h>
 
-char* get_video_play_token_ver1(const char* ip_addr, const char* fileName, uint16_t nTrailTime, int32_t nPlatform);
+char* get_video_play_token_ver1(const char* ip_addr, const char* fileName, uint16_t nTrailTime, int32_t nPlatform, int32_t debug);
 
 #ifdef __cplusplus
 }
