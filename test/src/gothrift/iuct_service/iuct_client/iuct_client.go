@@ -22,8 +22,7 @@ var (
 	tCTimeout = 2 * time.Second
 )
 
-func RPCGetProgramHits(nPid int64) int32 {
-	var client *iuct_service.IuctThriftServiceClient
+func getIuctClient() *iuct_service.IuctThriftServiceClient {
 
 	hosts := "192.168.49.212:15491"
 
@@ -33,7 +32,7 @@ func RPCGetProgramHits(nPid int64) int32 {
 		os.Exit(1)
 	}
 
-	defer t.Close()
+	//defer t.Close()
 	if err := t.Open(); err != nil {
 		fmt.Fprintln(os.Stderr, "Error opening socket to ", hosts, " ", err)
 		os.Exit(1)
@@ -42,7 +41,12 @@ func RPCGetProgramHits(nPid int64) int32 {
 	tFactory := thrift.NewTFramedTransportFactory(thrift.NewTTransportFactory())
 	trans := tFactory.GetTransport(t)
 	f := thrift.NewTBinaryProtocolFactoryDefault()
-	client = iuct_service.NewIuctThriftServiceClientFactory(trans, f)
+	return iuct_service.NewIuctThriftServiceClientFactory(trans, f)
+}
+
+func RPCGetProgramHits(nPid int64) int32 {
+	client := getIuctClient()
+	defer client.Transport.Close()
 
 	req := iuct_service.NewUserCenterUserReq()
 	zipkin := com_types.NewZipkinHeader()
